@@ -1,16 +1,13 @@
-FROM node:alpine-3.11 AS appbuild
-WORKDIR /usr/src/app
-COPY package.json ./
-COPY .babelrc ./
+# build stage
+FROM node:lts-alpine as build-stage
+WORKDIR /app
+COPY package*.json ./
 RUN npm install
-COPY ./src ./src
+COPY . .
 RUN npm run build
 
-FROM node:alpine-3.11
-WORKDIR /usr/src/app
-COPY package.json ./
-COPY .babelrc ./
-RUN npm install
-COPY --from=appbuild /usr/src/app/dist ./dist
-EXPOSE 4002
-CMD npm start
+# production stage
+FROM nginx:stable-alpine as production-stage
+COPY --from=build-stage /app/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
